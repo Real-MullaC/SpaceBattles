@@ -1,0 +1,56 @@
+name: Pre-Release WinUtil
+permissions:
+  contents: write
+  actions: read
+on:
+  workflow_dispatch: # Manual trigger added
+
+jobs:
+  build-runspace:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Get latest release version
+        id: get_latest_release
+        run: |
+          $latestRelease = gh release list --limit 1 --exclude-drafts --exclude-pre-releases --json tagName --jq '.[0].tagName'
+          if ($latestRelease -match '(\d+\.\d+\.\d+)') {
+            $version = [Version]$matches[1]
+            $newVersion = "{0}.{1}.{2}" -f $version.Major, $version.Minor, ($version.Build + 1)
+          } else {
+            $newVersion = "0.0.1"
+          }
+          echo "VERSION=$newVersion" >> $env:GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+
+      - name: Create Tag
+        id: create_tag
+        run: |
+          git tag $env:VERSION
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to create tag $env:VERSION"
+            exit 1
+          }
+          git push origin $env:VERSION
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to push tag $env:VERSION"
+            exit 1
+          }
+        shell: pwsh
+
+      - name: Create and Upload Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: Alpha ${{ env.VERSION }}
+          append_body: false
+          files: ./SpaceBattles.zip
+          prerelease: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
