@@ -66,26 +66,26 @@ heart_drops = []  # List to manage multiple hearts
 crystal_drops = [] # List to manage multiple crystals
 
 def start_game(level):
-    global game_over_flag, win_game_flag, enemies, player, heart
+    global game_over_flag, win_game_flag, enemies, player, heart, selected_level
     # Reset player score and health
     player.score = 0
     player.health = 100
 
     enemies.clear() # Ensure enemies are cleared before creating new ones.
-    level_str = str(level) # Ensure level is string
-    level_int = int(level) # Level_int will be used to check which level the player is.
+    selected_level = int(level)  # Update selected_level here
+    level_str = str(selected_level)
 
     enemy_count = levels.get(level_str, 1)  # Resets to 1 enemy if player level is passed max level (will add more levels soon)
     for _ in range(enemy_count):
         enemy = Enemy(random.randint(64, SCREENSIZE[0] - 64), 64, 64, 64, random.randint(3, 10), enemy_img, SCREENSIZE, 100)
-        if 10 > level_int > 5:
+        if 10 > selected_level > 5:
             enemy.health = 120
-        elif 20 > level_int > 10:
+        elif 20 > selected_level > 10:
             enemy.health = 150
             player.fire_cool_down /= 1.05
         enemies.append(enemy)
 
-    if level_int % 10 == 0:
+    if selected_level % 10 == 0:
         boss_enemy = Boss(random.randint(64, SCREENSIZE[0] - 64), 64, 128, 128, random.randint(3, 10), boss_enemy_img, SCREENSIZE, 500)
         enemies.append(boss_enemy)
 
@@ -417,7 +417,7 @@ while running:
         level_text = medium_font.render(f"Level: {selected_level}", True, game_text_color)
         window.blit(level_text, (200, SCREENSIZE[1] - 40))
 
-        enemies_text = medium_font.render(f"Enemies: {levels[str(selected_level)]}", True, game_text_color)
+        enemies_text = medium_font.render(f"Enemies: {len(enemies)}", True, game_text_color)
         window.blit(enemies_text, (400, SCREENSIZE[1] - 40))
 
         health_text = medium_font.render(f"Health: {player.health}", True, game_text_color)
