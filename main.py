@@ -10,44 +10,59 @@ from gui import Button, LevelButton
 from items import Heart, Crystal
 from levels import levels
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# Initialize Pygame
 pygame.init()
+pygame.mixer.init()
 
-SCREENSIZE: tuple[int] = (800, 600)
-PLAYER_SPAWN: tuple[int] = ((SCREENSIZE[0] - 64) / 2, SCREENSIZE[1] - 64 * 2)
+# Set up the display
+SCREENSIZE = (800, 600)
+PLAYER_SPAWN = ((SCREENSIZE[0] - 64) / 2, SCREENSIZE[1] - 64 * 2)
 
-title_bg = pygame.image.load("backgrounds/bg1.png")
+# Load assets
+title_bg = pygame.image.load(resource_path(r"backgrounds\bg1.png"))
 title_bg = pygame.transform.scale(title_bg, SCREENSIZE)
 
 window = pygame.display.set_mode(SCREENSIZE)
 pygame.display.set_caption("Space Battles")
-icon = pygame.image.load("icon.png")
+icon = pygame.image.load(resource_path(r"assets\icon.png"))
 pygame.display.set_icon(icon)
 
-backgrounds = os.listdir("backgrounds")
-random_bg = pygame.image.load(f"backgrounds/{random.choice(backgrounds)}")
+backgrounds = os.listdir(resource_path(r"backgrounds"))
+random_bg = pygame.image.load(resource_path(fr"backgrounds\{random.choice(backgrounds)}"))
 background = pygame.transform.scale(random_bg, SCREENSIZE)
 
-player_img = pygame.image.load("sprites/player.png")
+player_img = pygame.image.load(resource_path(r"sprites\player.png"))
 enemy_img = pygame.transform.flip(player_img, flip_x=False, flip_y=True)
-boss_img_src = pygame.image.load("sprites/boss.png")
+boss_img_src = pygame.image.load(resource_path(r"sprites\boss.png"))
 boss_enemy_img = pygame.transform.flip(boss_img_src, flip_x=False, flip_y=True)
 
-heart_img = pygame.image.load("sprites/health.png")
+heart_img = pygame.image.load(resource_path(r"sprites\health.png"))
 heart_img = pygame.transform.scale(heart_img, (32, 32))
 
-crystal_img = pygame.image.load("sprites/crystal.png")
-crystal_img = pygame.transform.scale(crystal_img, (32, 32)) 
+crystal_img = pygame.image.load(resource_path(r"sprites\crystal.png"))
+crystal_img = pygame.transform.scale(crystal_img, (32, 32))
+
+game_over_sound = pygame.mixer.Sound(resource_path(r"sounds\gameover.wav"))
+win_sound = pygame.mixer.Sound(resource_path(r"sounds\win.wav"))
+grab_sound = pygame.mixer.Sound(resource_path(r"sounds\grab.wav"))
+heal_sound = pygame.mixer.Sound(resource_path(r"sounds\heal.wav"))
+
+# Load game data
+with open(resource_path(r"save\data.json"), "r") as f:
+    data = json.load(f)
 
 clock = pygame.time.Clock()
 
 large_font = pygame.font.Font(None, 48)
-medium_font = pygame.font.Font(None, 36) 
+medium_font = pygame.font.Font(None, 36)
 small_font = pygame.font.Font(None, 24)
-
-game_over_sound = pygame.mixer.Sound("sounds/gameover.wav")
-win_sound = pygame.mixer.Sound("sounds/win.wav")
-grab_sound = pygame.mixer.Sound("sounds/grab.wav")
-heal_sound = pygame.mixer.Sound("sounds/heal.wav")
 
 enemies = []
 
@@ -120,7 +135,7 @@ def game_over(surface, final_score, high_score):
 def win_screen(surface, final_score, high_score):
     global win_game_flag, enemies, player, next_level_btn, play_again_btn, quit_btn, selected_level
 
-    with open("text/splashes.txt", "r") as f:
+    with open(resource_path(r"text\splashes.txt"), "r") as f:
         random_text = random.choice(f.readlines())
 
     win_game_flag = True
@@ -152,7 +167,7 @@ def win_screen(surface, final_score, high_score):
 
 def select_level():
     global selected_level
-    with open("save/data.json", "r") as f:
+    with open(resource_path(r"save\data.json"), "r") as f:
         data = json.load(f)
         
     select_lvl_font = pygame.font.Font(None, 64)
@@ -218,7 +233,7 @@ def select_level():
     f.close()
 
 def show_stats():
-    with open("save/data.json", "r") as f:
+    with open(resource_path(r"save\data.json"), "r") as f:
         data = json.load(f)
 
     stats_font = pygame.font.Font(None, 64)
@@ -260,7 +275,7 @@ def show_stats():
 
 def title_screen():
     global selected_level
-    with open("save/data.json", "r") as f:
+    with open(resource_path(r"save\data.json"), "r") as f:
         data = json.load(f)
 
     title_font = pygame.font.Font(None, 64)
@@ -431,7 +446,7 @@ while running:
         mouse_x, mouse_y = pygame.mouse.get_pos()
         mouse_pressed = pygame.mouse.get_pressed()
         if mouse_pressed[0]:
-            with open("save/data.json", "r") as f:
+            with open(resource_path(r"save\data.json"), "r") as f:
                 data = json.load(f)
             if play_again_btn.is_clicked(mouse_x, mouse_y):
                 start_game(str(data["Level"]))
@@ -446,7 +461,7 @@ while running:
         mouse_x, mouse_y = pygame.mouse.get_pos()
         mouse_pressed = pygame.mouse.get_pressed()
         if mouse_pressed[0]:
-            with open("save/data.json", "r") as f:
+            with open(resource_path(r"save\data.json"), "r") as f:
                 data = json.load(f)
             if play_again_btn.is_clicked(mouse_x, mouse_y):
                 start_game(str(data["Level"]))
@@ -454,7 +469,7 @@ while running:
             elif next_level_btn.is_clicked(mouse_x, mouse_y):
                 player.level += 1
                 data["Level"] = player.level
-                with open("save/data.json", "w") as f:
+                with open(resource_path(r"save\data.json"), "w") as f:
                     json.dump(data, f, indent=4)
                 start_game(str(data["Level"]))
                 continue

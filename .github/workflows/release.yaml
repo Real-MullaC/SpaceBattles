@@ -1,0 +1,95 @@
+name: Pre-Release Space Battles
+permissions:
+  contents: write
+  actions: read
+on:
+  workflow_dispatch: # Manual trigger added
+
+jobs:
+  build-and-sign:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Get latest release version
+        id: get_latest_release
+        run: |
+          $latestRelease = gh release list --limit 1 --exclude-drafts --exclude-pre-releases --json tagName --jq '.[0].tagName'
+          if ($latestRelease -match '(\d+\.\d+\.\d+)') {
+            $version = [Version]$matches[1]
+            $newVersion = "{0}.{1}.{2}" -f $version.Major, $version.Minor, ($version.Build + 1)
+          } else {
+            $newVersion = "0.0.1"
+          }
+          echo "VERSION=$newVersion" >> $env:GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements.txt
+        shell: pwsh
+
+      - name: Build game executable
+        run: |
+          pyinstaller --onefile --windowed --add-data "sounds:sounds" --add-data "text:text" --add-data "backgrounds:backgrounds" --add-data "sprites:sprites" --add-data "save:save" --add-data "assets:assets" --icon "assets/space_battles_icon.ico" --name "SpaceBattles" main.py
+        shell: pwsh
+
+      - name: Create self-signed certificate
+        run: |
+          $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=PythonGameSelfSigned" -KeyUsage DigitalSignature -FriendlyName "Python Game Self-Signed Cert" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+          $certPassword = ConvertTo-SecureString -String "PythonGameCertPassword" -Force -AsPlainText
+          $certPath = "self_signed_cert.pfx"
+          Export-PfxCertificate -Cert $cert -FilePath $certPath -Password $certPassword
+          echo "CERT_PATH=$certPath" >> $env:GITHUB_ENV
+          echo "CERT_PASSWORD=PythonGameCertPassword" >> $env:GITHUB_ENV
+        shell: pwsh
+
+      - name: Install SignTool
+        run: |
+          choco install windows-sdk-10-version-2004-all
+        shell: pwsh
+
+      - name: Sign game executable
+        run: |
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe" sign /f $env:CERT_PATH /p $env:CERT_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 .\dist\SpaceBattles.exe
+        shell: pwsh
+
+      - name: Create Tag
+        id: create_tag
+        run: |
+          git tag $env:VERSION
+          git push origin $env:VERSION
+        shell: pwsh
+
+      - name: Create and Upload Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: Pre-Release ${{ env.VERSION }}
+          body: |
+            This is a pre-release version of Space Battles.
+            
+            Note: This executable is signed with a self-signed certificate. You may need to bypass Windows SmartScreen to run it.
+          files: ./dist/SpaceBattles.exe
+          prerelease: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clean up build artifacts
+        run: |
+          if (Test-Path -Path "dist") { Remove-Item -Recurse -Force dist }
+          if (Test-Path -Path "build") { Remove-Item -Recurse -Force build }
+          if (Test-Path -Path "SpaceBattles.spec") { Remove-Item -Force SpaceBattles.spec }
+        shell: pwsh

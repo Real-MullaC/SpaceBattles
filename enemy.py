@@ -2,7 +2,16 @@ import pygame
 import random
 import time
 import json
+import sys
+import os
 from projectile import Projectile
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 class Enemy(object):
     def __init__(self, x, y, width, height, velocity, image, screen_size, health):
@@ -15,7 +24,7 @@ class Enemy(object):
         self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
         self.screen_size = screen_size
         self.health = health
-        self.damage_image = pygame.image.load("sprites/damage.png")
+        self.damage_image = pygame.image.load(resource_path("sprites/damage.png"))
         self.damage_image = pygame.transform.scale(self.damage_image, (64, 64))
         self.damage_image = pygame.transform.flip(self.damage_image, flip_x=False, flip_y=True)
         self.original_image = self.image
@@ -23,18 +32,18 @@ class Enemy(object):
         self.direction = random.choice([-1, 0, 1])  # Initial direction (-1: left, 0: no movement, 1: right)
         self.hit_time = 1
         self.projectiles = []
-        self.projectile_image = pygame.image.load("sprites/projectile.png")
+        self.projectile_image = pygame.image.load(resource_path("sprites/projectile.png"))
         self.projectile_image = pygame.transform.scale(self.projectile_image, (16, 16))
         self.projectile_image = pygame.transform.flip(self.projectile_image, flip_x=False, flip_y=True)
-        self.projectile_sound = pygame.mixer.Sound("sounds/projectile.wav")
-        self.hit_sound = pygame.mixer.Sound("sounds/hit.wav")
-        self.death_sound = pygame.mixer.Sound("sounds/death.wav")
+        self.projectile_sound = pygame.mixer.Sound(resource_path("sounds/projectile.wav"))
+        self.hit_sound = pygame.mixer.Sound(resource_path("sounds/hit.wav"))
+        self.death_sound = pygame.mixer.Sound(resource_path("sounds/death.wav"))
         self.projectile_velocity = 5  # Speed of the enemy's projectile
         self.fire_cooldown = random.uniform(1.0, 3.0)  # Random cooldown between shots
         self.last_fire_time = time.time()
         self.kills_player = False
 
-        with open("save/data.json", "r") as f:
+        with open(resource_path("save/data.json"), "r") as f:
             self.data = json.load(f)
 
     def hit(self):
@@ -62,7 +71,7 @@ class Enemy(object):
                     self.death_sound.play()
                     self.kills_player = True
 
-                    with open("save/data.json", "w") as f:
+                    with open(resource_path("save/data.json"), "w") as f:
                         self.data["Deaths"] += 1
                         json.dump(self.data, f, indent=4)
 
@@ -109,7 +118,7 @@ class Boss(object):
         self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
         self.screen_size = screen_size
         self.health = health
-        self.damage_image = pygame.image.load("sprites/damage.png")
+        self.damage_image = pygame.image.load(resource_path("sprites/damage.png"))
         self.damage_image = pygame.transform.scale(self.damage_image, (128, 128))
         self.damage_image = pygame.transform.flip(self.damage_image, flip_x=False, flip_y=True)
         self.original_image = self.image
@@ -117,18 +126,18 @@ class Boss(object):
         self.direction = random.choice([-1, 0, 1])  # Initial direction (-1: left, 0: no movement, 1: right)
         self.hit_time = 1
         self.projectiles = []
-        self.projectile_image = pygame.image.load("sprites/projectile.png")
+        self.projectile_image = pygame.image.load(resource_path("sprites/projectile.png"))
         self.projectile_image = pygame.transform.scale(self.projectile_image, (32, 32))
         self.projectile_image = pygame.transform.flip(self.projectile_image, flip_x=False, flip_y=True)
-        self.projectile_sound = pygame.mixer.Sound("sounds/projectile.wav")
-        self.hit_sound = pygame.mixer.Sound("sounds/hit.wav")
-        self.death_sound = pygame.mixer.Sound("sounds/death.wav")
+        self.projectile_sound = pygame.mixer.Sound(resource_path("sounds/projectile.wav"))
+        self.hit_sound = pygame.mixer.Sound(resource_path("sounds/hit.wav"))
+        self.death_sound = pygame.mixer.Sound(resource_path("sounds/death.wav"))
         self.projectile_velocity = 5  # Speed of the enemy's projectile
         self.fire_cooldown = random.uniform(1.0, 3.0)  # Random cooldown between shots
         self.last_fire_time = time.time()
         self.kills_player = False
 
-        with open("save/data.json", "r") as f:
+        with open(resource_path("save/data.json"), "r") as f:
             self.data = json.load(f)
 
     def hit(self):
@@ -156,7 +165,7 @@ class Boss(object):
                     self.death_sound.play()
                     self.kills_player = True
 
-                    with open("save/data.json", "w") as f:
+                    with open(resource_path("save/data.json"), "w") as f:
                         self.data["Deaths"] += 1
                         json.dump(self.data, f, indent=4)
 

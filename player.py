@@ -2,9 +2,28 @@ import pygame
 from projectile import Projectile
 import time
 import json
+import os
+import sys
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    full_path = os.path.join(base_path, relative_path)
+    print(f"Attempting to access: {full_path}")
+    print(f"File exists: {os.path.exists(full_path)}")
+    return full_path
 
 class Player(object):
     def __init__(self, x: int, y: int, width: int, height: int, velocity: int, image, screen_size: tuple[int], enemies: list[object], health: int):
+        print("Initializing Player...")
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Contents of current directory: {os.listdir()}")
+        
         self.x = x
         self.y = y
         self.width = width
@@ -14,24 +33,26 @@ class Player(object):
         self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
         self.screen_size = screen_size
         self.projectiles = [] # List of all projectile objects currently on screen
-        self.projectile_image_src = pygame.image.load("sprites/projectile.png")
+        projectile_path = resource_path(r"sprites\projectile.png")
+        print(f"Attempting to load projectile image from: {projectile_path}")
+        self.projectile_image_src = pygame.image.load(projectile_path)
         self.projectile_image = pygame.transform.scale(self.projectile_image_src, (16, 16))
         self.projectile_velocity = 10 # Velocity of the projectile
         self.fire_cool_down = 0.25  # Cooldown period in seconds
         self.last_fire_time = 0  # Track the last time a projectile was fired
         self.enemies = enemies
-        self.projectile_sound = pygame.mixer.Sound("sounds/projectile.wav")
-        self.hit_sound = pygame.mixer.Sound("sounds/hit.wav")
-        self.death_sound = pygame.mixer.Sound("sounds/death.wav")
+        self.projectile_sound = pygame.mixer.Sound(resource_path(r"sounds\projectile.wav"))
+        self.hit_sound = pygame.mixer.Sound(resource_path(r"sounds\hit.wav"))
+        self.death_sound = pygame.mixer.Sound(resource_path(r"sounds\death.wav"))
         self.score = 0
         self.health = health
-        self.damage_image = pygame.image.load("sprites/damage.png")
+        self.damage_image = pygame.image.load(resource_path(r"sprites\damage.png"))
         self.damage_image = pygame.transform.scale(self.damage_image, (64, 64))
         self.original_image = self.image
         self.last_direction_change_time = time.time()
         self.hit_time = 1
         
-        with open("save/data.json", "r") as f:
+        with open(resource_path(r"save\data.json"), "r") as f:
             self.data = json.load(f)
 
         self.high_score = self.data["High Score"]
@@ -93,13 +114,13 @@ class Player(object):
                     if self.data["High Score"] < self.score:
                         self.data["High Score"] += 10
                     
-                    with open("save/data.json", "w") as f:
+                    with open(resource_path(r"save\data.json"), "w") as f:
                         json.dump(self.data, f, indent=4)
                     if enemy.health <= 0: 
                         self.enemies.remove(enemy)
                         self.death_sound.play()
                         self.score += 100 # Add 100 score for death of enemy
-                        with open("save/data.json", "w") as f:
+                        with open(resource_path(r"save\data.json"), "w") as f:
                             self.data["Total Score"] += 100
                             self.data["Kills"] += 1
                             if self.data["High Score"] < self.score:
@@ -111,6 +132,3 @@ class Player(object):
             # Remove projectile if it goes off-screen
             if projectile.y < 0:
                 self.projectiles.remove(projectile)
-
-
-        
